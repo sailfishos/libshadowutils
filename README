@@ -1,3 +1,19 @@
+libshadowutils: Functions from Shadow Tool Suite as shared library
+------------------------------------------------------------------
+
+This library contains some useful functions from the Shadow Tool Suite
+exposed as shared library to be used by applications not shipped with
+the Shadow Tool Suite.
+
+
+To build:
+
+  mkdir build
+  cd build
+  cmake ..
+  make
+
+
 Files imported from:
   http://pkg-shadow.alioth.debian.org/releases/shadow-4.1.5.1.tar.gz
   md5sum: ae66de9953f840fb3a97f6148bc39a30

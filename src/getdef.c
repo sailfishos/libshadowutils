@@ -50,6 +50,10 @@ struct itemdef {
 	/*@null@*/char *value;		/* value given, or NULL if no value     */
 };
 
+#define USE_SYSLOG
+#define USE_SHA_CRYPT
+#define WITH_TCB
+
 #define NUMDEFS	(sizeof(def_table)/sizeof(def_table[0]))
 static struct itemdef def_table[] = {
 	{"CHFN_RESTRICT", NULL},

@@ -36,6 +36,8 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
+
 /* getdef.c */
 extern bool getdef_bool (const char *);
 extern long getdef_long (const char *, long);
