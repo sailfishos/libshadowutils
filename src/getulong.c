@@ -27,13 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <config.h>
-
-#ident "$Id: getlong.c 2763 2009-04-23 09:57:03Z nekral-guest $"
-
 #include <stdlib.h>
 #include <errno.h>
-#include "prototypes.h"
 
 /*
  * getulong - extract an unsigned long integer provided by the numstr string in *result

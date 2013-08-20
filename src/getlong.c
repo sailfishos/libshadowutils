@@ -27,13 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <config.h>
-
-#ident "$Id: getlong.c 2795 2009-04-24 23:27:12Z nekral-guest $"
-
 #include <stdlib.h>
 #include <errno.h>
-#include "prototypes.h"
 
 /*
  * getlong - extract a long integer provided by the numstr string in *result

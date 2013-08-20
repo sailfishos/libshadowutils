@@ -30,12 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <config.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <limits.h>
+#include <string.h>
 
-#ident "$Id: getdef.c 3095 2010-03-04 18:11:13Z nekral-guest $"
+#define SYSLOG(...)
 
-#include "prototypes.h"
-#include "defines.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -213,7 +214,7 @@ int getdef_num (const char *item, int dflt)
 	    || (val > INT_MAX)
 	    || (val < INT_MIN)) {
 		fprintf (stderr,
-		         _("configuration error - cannot parse %s value: '%s'"),
+		         "configuration error - cannot parse %s value: '%s'",
 		         item, d->value);
 		return dflt;
 	}
@@ -248,7 +249,7 @@ unsigned int getdef_unum (const char *item, unsigned int dflt)
 	    || (val < 0)
 	    || (val > INT_MAX)) {
 		fprintf (stderr,
-		         _("configuration error - cannot parse %s value: '%s'"),
+		         "configuration error - cannot parse %s value: '%s'",
 		         item, d->value);
 		return dflt;
 	}
@@ -281,7 +282,7 @@ long getdef_long (const char *item, long dflt)
 
 	if (getlong (d->value, &val) == 0) {
 		fprintf (stderr,
-		         _("configuration error - cannot parse %s value: '%s'"),
+		         "configuration error - cannot parse %s value: '%s'",
 		         item, d->value);
 		return dflt;
 	}
@@ -314,7 +315,7 @@ unsigned long getdef_ulong (const char *item, unsigned long dflt)
 	if (getulong (d->value, &val) == 0) {
 		/* FIXME: we should have a getulong */
 		fprintf (stderr,
-		         _("configuration error - cannot parse %s value: '%s'"),
+		         "configuration error - cannot parse %s value: '%s'",
 		         item, d->value);
 		return dflt;
 	}
@@ -350,7 +351,7 @@ int putdef_str (const char *name, const char *value)
 	 */
 	cp = strdup (value);
 	if (NULL == cp) {
-		(void) fputs (_("Could not allocate space for config info.\n"),
+		(void) fputs ("Could not allocate space for config info.\n",
 		              stderr);
 		SYSLOG ((LOG_ERR, "could not allocate space for config info"));
 		return -1;
@@ -376,6 +377,9 @@ static /*@observer@*/ /*@null@*/struct itemdef *def_find (const char *name)
 {
 	struct itemdef *ptr;
 
+	if (name == NULL) {
+		return (struct itemdef *) NULL;
+	}
 
 	/*
 	 * Search into the table.
@@ -392,7 +396,7 @@ static /*@observer@*/ /*@null@*/struct itemdef *def_find (const char *name)
 	 */
 
 	fprintf (stderr,
-	         _("configuration error - unknown item '%s' (notify administrator)\n"),
+	         "configuration error - unknown item '%s' (notify administrator)\n",
 	         name);
 	SYSLOG ((LOG_CRIT, "unknown configuration item `%s'", name));
 	return (struct itemdef *) NULL;
@@ -478,12 +482,11 @@ static void def_load (void)
 	(void) fclose (fp);
 }
 
-
 #ifdef CKDEFS
 int main (int argc, char **argv)
 {
 	int i;
-	char *cp;
+	const char *cp;
 	struct itemdef *d;
 
 	def_load ();
