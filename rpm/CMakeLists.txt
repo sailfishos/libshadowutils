@@ -2,19 +2,15 @@ cmake_minimum_required(VERSION 2.8)
 
 project(libshadowutils)
 
-include_directories(${libshadowutils_SOURCE_DIR}/include)
+include_directories(${libshadowutils_SOURCE_DIR}/lib)
 
-file(GLOB LIBSHADOWUTILS_SOURCES "${libshadowutils_SOURCE_DIR}/src/*.c")
-file(GLOB LIBSHADOWUTILS_HEADERS "${libshadowutils_SOURCE_DIR}/include/*.h")
+file(GLOB LIBSHADOWUTILS_SOURCES    "${libshadowutils_SOURCE_DIR}/lib/getdef.c"
+                                    "${libshadowutils_SOURCE_DIR}/lib/getlong.c"
+                                    "${libshadowutils_SOURCE_DIR}/lib/getulong.c")
+file(GLOB LIBSHADOWUTILS_HEADERS "${libshadowutils_SOURCE_DIR}/lib/getdef.h")
 
 
 # Shared library
-
-set(LIBSHADOWUTILS_MAJOR_VERSION "0")
-set(LIBSHADOWUTILS_MINOR_VERSION "0")
-set(LIBSHADOWUTILS_PATCH_VERSION "1")
-set(LIBSHADOWUTILS_VERSION "${LIBSHADOWUTILS_MAJOR_VERSION}.${LIBSHADOWUTILS_MINOR_VERSION}.${LIBSHADOWUTILS_PATCH_VERSION}")
-set(LIBSHADOWUTILS_VERSION_SONAME "${LIBSHADOWUTILS_MAJOR_VERSION}")
 
 add_library(shadowutils SHARED ${LIBSHADOWUTILS_SOURCES})
 set_target_properties(shadowutils PROPERTIES
@@ -25,7 +21,7 @@ set_target_properties(shadowutils PROPERTIES
 # Unit tests
 
 enable_testing()
-add_executable(test_getdef tests/test_getdef.c)
+add_executable(test_getdef test_getdef.c)
 target_link_libraries(test_getdef shadowutils)
 add_test(test_getdef test_getdef)
 

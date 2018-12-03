@@ -1,0 +1,175 @@
+--- upstream/lib/getdef.c	2018-12-13 09:17:07.087779465 +0000
++++ upstream/lib/getdef.c	2018-12-03 14:19:56.505757381 +0000
+@@ -30,12 +30,13 @@
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+
+-#include <config.h>
++#include <stdbool.h>
++#include <stdint.h>
++#include <limits.h>
++#include <string.h>
+
+-#ident "$Id$"
++#define SYSLOG(...)
+
+-#include "prototypes.h"
+-#include "defines.h"
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <ctype.h>
+@@ -75,6 +76,10 @@
+ 	{"ULIMIT", NULL},
+
+
++#define USE_SYSLOG
++#define USE_SHA_CRYPT
++#define WITH_TCB
++
+ #define NUMDEFS	(sizeof(def_table)/sizeof(def_table[0]))
+ static struct itemdef def_table[] = {
+ 	{"CHFN_RESTRICT", NULL},
+@@ -232,7 +237,7 @@
+ 	    || (val > INT_MAX)
+ 	    || (val < INT_MIN)) {
+ 		fprintf (stderr,
+-		         _("configuration error - cannot parse %s value: '%s'"),
++		         "configuration error - cannot parse %s value: '%s'",
+ 		         item, d->value);
+ 		return dflt;
+ 	}
+@@ -267,7 +272,7 @@
+ 	    || (val < 0)
+ 	    || (val > INT_MAX)) {
+ 		fprintf (stderr,
+-		         _("configuration error - cannot parse %s value: '%s'"),
++		         "configuration error - cannot parse %s value: '%s'",
+ 		         item, d->value);
+ 		return dflt;
+ 	}
+@@ -300,7 +305,7 @@
+
+ 	if (getlong (d->value, &val) == 0) {
+ 		fprintf (stderr,
+-		         _("configuration error - cannot parse %s value: '%s'"),
++		         "configuration error - cannot parse %s value: '%s'",
+ 		         item, d->value);
+ 		return dflt;
+ 	}
+@@ -333,7 +338,7 @@
+ 	if (getulong (d->value, &val) == 0) {
+ 		/* FIXME: we should have a getulong */
+ 		fprintf (stderr,
+-		         _("configuration error - cannot parse %s value: '%s'"),
++		         "configuration error - cannot parse %s value: '%s'",
+ 		         item, d->value);
+ 		return dflt;
+ 	}
+@@ -369,7 +374,7 @@
+ 	 */
+ 	cp = strdup (value);
+ 	if (NULL == cp) {
+-		(void) fputs (_("Could not allocate space for config info.\n"),
++		(void) fputs ("Could not allocate space for config info.\n",
+ 		              stderr);
+ 		SYSLOG ((LOG_ERR, "could not allocate space for config info"));
+ 		return -1;
+@@ -395,6 +400,9 @@
+ {
+ 	struct itemdef *ptr;
+
++	if (name == NULL) {
++		return (struct itemdef *) NULL;
++	}
+
+ 	/*
+ 	 * Search into the table.
+@@ -416,7 +424,7 @@
+ 		}
+ 	}
+ 	fprintf (stderr,
+-	         _("configuration error - unknown item '%s' (notify administrator)\n"),
++	         "configuration error - unknown item '%s' (notify administrator)\n",
+ 	         name);
+ 	SYSLOG ((LOG_CRIT, "unknown configuration item `%s'", name));
+
+@@ -518,12 +526,11 @@
+ 	(void) fclose (fp);
+ }
+
+-
+ #ifdef CKDEFS
+ int main (int argc, char **argv)
+ {
+ 	int i;
+-	char *cp;
++	const char *cp;
+ 	struct itemdef *d;
+
+ 	def_load ();
+--- upstream/lib/getlong.c	2018-12-13 09:16:36.887674373 +0000
++++ upstream/lib/getlong.c	2018-12-03 14:20:44.129962467 +0000
+@@ -27,13 +27,8 @@
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+
+-#include <config.h>
+-
+-#ident "$Id$"
+-
+ #include <stdlib.h>
+ #include <errno.h>
+-#include "prototypes.h"
+
+ /*
+  * getlong - extract a long integer provided by the numstr string in *result
+@@ -56,4 +51,3 @@
+ 	*result = val;
+ 	return 1;
+ }
+-
+--- upstream/lib/getulong.c	2018-12-13 09:16:36.887674373 +0000
++++ upstream/lib/getulong.c	2018-12-03 14:16:40.056915490 +0000
+@@ -27,13 +27,8 @@
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
+
+-#include <config.h>
+-
+-#ident "$Id: getlong.c 2763 2009-04-23 09:57:03Z nekral-guest $"
+-
+ #include <stdlib.h>
+ #include <errno.h>
+-#include "prototypes.h"
+
+ /*
+  * getulong - extract an unsigned long integer provided by the numstr string in *result
+--- upstream/lib/getdef.h	2018-12-13 09:16:36.887674373 +0000
++++ upstream/lib/getdef.h	2018-12-03 13:31:27.561527711 +0000
+@@ -32,6 +32,12 @@
+ #ifndef _GETDEF_H
+ #define _GETDEF_H
+
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#include <stdbool.h>
++
+ /* getdef.c */
+ extern bool getdef_bool (const char *);
+ extern long getdef_long (const char *, long);
+@@ -40,9 +46,12 @@
+ extern unsigned int getdef_unum (const char *, unsigned int);
+ extern /*@observer@*/ /*@null@*/const char *getdef_str (const char *);
+ extern int putdef_str (const char *, const char *);
+-extern void setdef_config_file (const char* file);
+
+ /* default UMASK value if not specified in /etc/login.defs */
+ #define		GETDEF_DEFAULT_UMASK	022
+
++#ifdef __cplusplus
++}
++#endif
++
+ #endif				/* _GETDEF_H */

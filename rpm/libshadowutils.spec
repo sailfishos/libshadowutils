@@ -1,11 +1,16 @@
 Name: libshadowutils
-Version: 0.0.1
-Release: 1
+Version: 4.6
+Release: 4
 Summary: Functions from Shadow Tool Suite as shared library
 Group: System Environment/Libraries
 License: BSD
-URL: https://github.com/nemomobile/libshadowutils
+URL: https://git.merproject.org/mer-core/libshadowutils/
 Source: %{name}-%{version}.tar.gz
+Source1: CMakeLists.txt
+Source2: README
+Source3: libshadowutils.pc.in
+Source4: test_getdef.c
+Patch1: library.diff
 BuildRequires: cmake
 
 %description
@@ -16,23 +21,39 @@ the Shadow Tool Suite.
 %package devel
 Summary: Functions from Shadow Tool Suite as shared library (Development)
 Group: Development/Libraries
-Requires: %{name}
+Requires: %{name}  = %{version}-%{release}
 
 %description devel
 This library contains some useful functions from the Shadow Tool Suite
 exposed as shared library to be used by applications not shipped with
 the Shadow Tool Suite.
 
+%package doc
+Summary:   Documentation for %{name}
+Group:     Documentation
+Requires:  %{name} = %{version}-%{release}
+
+%description doc
+%{summary}.
+
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}/upstream
+%patch1 -p1
+cp %{SOURCE1} %{SOURCE3} %{SOURCE4} .
 
 %build
-%cmake .
+%cmake -D LIBSHADOWUTILS_VERSION=%{version}-%{release} -D LIBSHADOWUTILS_VERSION_SONAME=`echo %{version} | sed 's/\..*//'` .
 make
 
 %install
-rm -rf %{buildroot}
-%make_install
+mkdir -p ${RPM_BUILD_ROOT}%{_libdir}/pkgconfig
+mv -f lib*.so* ${RPM_BUILD_ROOT}%{_libdir}/
+mv -f %{name}.pc ${RPM_BUILD_ROOT}%{_libdir}/pkgconfig
+mkdir -p ${RPM_BUILD_ROOT}%{_includedir}/%{name}
+install -D lib/getdef.h ${RPM_BUILD_ROOT}%{_includedir}/%{name}
+mkdir -p ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}
+install -D %{SOURCE2} ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}/
+install README ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}/README.shadow
 
 %clean
 rm -rf %{buildroot}
@@ -45,12 +66,15 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root)
-%doc COPYING README README.shadow
+%license COPYING
 %{_libdir}/lib*.so.*
 
 %files devel
 %defattr(-,root,root)
-%doc COPYING README README.shadow
 %{_libdir}/lib*.so
 %{_libdir}/pkgconfig/*.pc
 %{_includedir}/*/*.h
+
+%files doc
+%defattr(-,root,root,-)
+%{_docdir}/%{name}-%{version}
