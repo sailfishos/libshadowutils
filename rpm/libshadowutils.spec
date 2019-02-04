@@ -1,6 +1,6 @@
 Name: libshadowutils
 Version: 4.6
-Release: 4
+Release: 5
 Summary: Functions from Shadow Tool Suite as shared library
 Group: System Environment/Libraries
 License: BSD
@@ -50,10 +50,10 @@ mkdir -p ${RPM_BUILD_ROOT}%{_libdir}/pkgconfig
 mv -f lib*.so* ${RPM_BUILD_ROOT}%{_libdir}/
 mv -f %{name}.pc ${RPM_BUILD_ROOT}%{_libdir}/pkgconfig
 mkdir -p ${RPM_BUILD_ROOT}%{_includedir}/%{name}
-install -D lib/getdef.h ${RPM_BUILD_ROOT}%{_includedir}/%{name}
+install -D -m 644 lib/getdef.h ${RPM_BUILD_ROOT}%{_includedir}/%{name}
 mkdir -p ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}
-install -D %{SOURCE2} ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}/
-install README ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}/README.shadow
+install -D -m 644 %{SOURCE2} ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}/
+install -m 644 README ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}/README.shadow
 
 %clean
 rm -rf %{buildroot}

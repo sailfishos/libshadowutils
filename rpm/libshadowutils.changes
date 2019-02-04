@@ -1,2 +1,5 @@
+* Mon Feb 04 2019 Sergey Chupligin <s.chupligin@omprussia.ru> - 4.6-5
+- [packaging] Fix build on obs. Fixes MER#2005
+
 * Mon Feb 04 2019 Marko Kenttälä <marko.kenttala@jolla.com> - 4.6-4
 - [nemo] Update to shadow-4.6, fixes jb#43967
