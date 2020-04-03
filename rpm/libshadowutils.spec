@@ -1,10 +1,9 @@
 Name: libshadowutils
-Version: 4.6
-Release: 5
+Version: 0.0.3
+Release: 1
 Summary: Functions from Shadow Tool Suite as shared library
-Group: System Environment/Libraries
 License: BSD
-URL: https://git.merproject.org/mer-core/libshadowutils/
+URL: https://git.sailfishos.org/mer-core/libshadowutils/
 Source: %{name}-%{version}.tar.gz
 Source1: CMakeLists.txt
 Source2: README
@@ -20,7 +19,6 @@ the Shadow Tool Suite.
 
 %package devel
 Summary: Functions from Shadow Tool Suite as shared library (Development)
-Group: Development/Libraries
 Requires: %{name}  = %{version}-%{release}
 
 %description devel
@@ -30,15 +28,13 @@ the Shadow Tool Suite.
 
 %package doc
 Summary:   Documentation for %{name}
-Group:     Documentation
 Requires:  %{name} = %{version}-%{release}
 
 %description doc
 %{summary}.
 
 %prep
-%setup -q -n %{name}-%{version}/upstream
-%patch1 -p1
+%autosetup -p1 -n %{name}-%{version}/upstream
 cp %{SOURCE1} %{SOURCE3} %{SOURCE4} .
 
 %build
