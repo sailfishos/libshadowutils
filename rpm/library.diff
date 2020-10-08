@@ -1,5 +1,5 @@
---- upstream/lib/getdef.c	2018-12-13 09:17:07.087779465 +0000
-+++ upstream/lib/getdef.c	2018-12-03 14:19:56.505757381 +0000
+--- upstream/lib/getdef.c
++++ upstream/lib/getdef.c
 @@ -30,12 +30,13 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
@@ -18,7 +18,7 @@
  #include <stdio.h>
  #include <stdlib.h>
  #include <ctype.h>
-@@ -75,6 +76,10 @@
+@@ -78,6 +79,10 @@ struct itemdef {
  	{"ULIMIT", NULL},
 
 
@@ -29,7 +29,7 @@
  #define NUMDEFS	(sizeof(def_table)/sizeof(def_table[0]))
  static struct itemdef def_table[] = {
  	{"CHFN_RESTRICT", NULL},
-@@ -232,7 +237,7 @@
+@@ -250,7 +255,7 @@ int getdef_num (const char *item, int dflt)
  	    || (val > INT_MAX)
  	    || (val < INT_MIN)) {
  		fprintf (stderr,
@@ -38,7 +38,7 @@
  		         item, d->value);
  		return dflt;
  	}
-@@ -267,7 +272,7 @@
+@@ -285,7 +290,7 @@ unsigned int getdef_unum (const char *item, unsigned int dflt)
  	    || (val < 0)
  	    || (val > INT_MAX)) {
  		fprintf (stderr,
@@ -47,7 +47,7 @@
  		         item, d->value);
  		return dflt;
  	}
-@@ -300,7 +305,7 @@
+@@ -318,7 +323,7 @@ long getdef_long (const char *item, long dflt)
 
  	if (getlong (d->value, &val) == 0) {
  		fprintf (stderr,
@@ -56,7 +56,7 @@
  		         item, d->value);
  		return dflt;
  	}
-@@ -333,7 +338,7 @@
+@@ -351,7 +356,7 @@ unsigned long getdef_ulong (const char *item, unsigned long dflt)
  	if (getulong (d->value, &val) == 0) {
  		/* FIXME: we should have a getulong */
  		fprintf (stderr,
@@ -65,7 +65,7 @@
  		         item, d->value);
  		return dflt;
  	}
-@@ -369,7 +374,7 @@
+@@ -387,7 +392,7 @@ int putdef_str (const char *name, const char *value)
  	 */
  	cp = strdup (value);
  	if (NULL == cp) {
@@ -74,7 +74,7 @@
  		              stderr);
  		SYSLOG ((LOG_ERR, "could not allocate space for config info"));
  		return -1;
-@@ -395,6 +400,9 @@
+@@ -413,6 +418,9 @@ static /*@observer@*/ /*@null@*/struct itemdef *def_find (const char *name)
  {
  	struct itemdef *ptr;
 
@@ -84,7 +84,7 @@
 
  	/*
  	 * Search into the table.
-@@ -416,7 +424,7 @@
+@@ -434,7 +442,7 @@ static /*@observer@*/ /*@null@*/struct itemdef *def_find (const char *name)
  		}
  	}
  	fprintf (stderr,
@@ -93,8 +93,8 @@
  	         name);
  	SYSLOG ((LOG_CRIT, "unknown configuration item `%s'", name));
 
-@@ -518,12 +526,11 @@
- 	(void) fclose (fp);
+@@ -600,12 +608,11 @@ static void def_load (void)
+ #endif
  }
 
 -
@@ -107,8 +107,8 @@
  	struct itemdef *d;
 
  	def_load ();
---- upstream/lib/getlong.c	2018-12-13 09:16:36.887674373 +0000
-+++ upstream/lib/getlong.c	2018-12-03 14:20:44.129962467 +0000
+--- upstream/lib/getlong.c
++++ upstream/lib/getlong.c
 @@ -27,13 +27,8 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
@@ -123,13 +123,13 @@
 
  /*
   * getlong - extract a long integer provided by the numstr string in *result
-@@ -56,4 +51,3 @@
+@@ -56,4 +51,3 @@ int getlong (const char *numstr, /*@out@*/long int *result)
  	*result = val;
  	return 1;
  }
 -
---- upstream/lib/getulong.c	2018-12-13 09:16:36.887674373 +0000
-+++ upstream/lib/getulong.c	2018-12-03 14:16:40.056915490 +0000
+--- upstream/lib/getulong.c
++++ upstream/lib/getulong.c
 @@ -27,13 +27,8 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
@@ -144,8 +144,8 @@
 
  /*
   * getulong - extract an unsigned long integer provided by the numstr string in *result
---- upstream/lib/getdef.h	2018-12-13 09:16:36.887674373 +0000
-+++ upstream/lib/getdef.h	2018-12-03 13:31:27.561527711 +0000
+--- upstream/lib/getdef.h
++++ upstream/lib/getdef.h
 @@ -32,6 +32,12 @@
  #ifndef _GETDEF_H
  #define _GETDEF_H
@@ -159,7 +159,7 @@
  /* getdef.c */
  extern bool getdef_bool (const char *);
  extern long getdef_long (const char *, long);
-@@ -40,9 +46,12 @@
+@@ -40,9 +46,12 @@ extern unsigned long getdef_ulong (const char *, unsigned long);
  extern unsigned int getdef_unum (const char *, unsigned int);
  extern /*@observer@*/ /*@null@*/const char *getdef_str (const char *);
  extern int putdef_str (const char *, const char *);
