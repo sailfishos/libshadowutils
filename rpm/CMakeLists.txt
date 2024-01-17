@@ -1,14 +1,21 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.2)
 
-project(libshadowutils)
+project(libshadowutils
+    LANGUAGES C
+    VERSION ${LIBSHADOWUTILS_VERS})
+
+include(GNUInstallDirs)
 
 include_directories(${libshadowutils_SOURCE_DIR}/lib)
 
-file(GLOB LIBSHADOWUTILS_SOURCES    "${libshadowutils_SOURCE_DIR}/lib/getdef.c"
-                                    "${libshadowutils_SOURCE_DIR}/lib/getlong.c"
-                                    "${libshadowutils_SOURCE_DIR}/lib/getulong.c")
-file(GLOB LIBSHADOWUTILS_HEADERS "${libshadowutils_SOURCE_DIR}/lib/getdef.h")
-
+file(GLOB LIBSHADOWUTILS_SOURCES
+    "${libshadowutils_SOURCE_DIR}/lib/getdef.c"
+    "${libshadowutils_SOURCE_DIR}/lib/getlong.c"
+    "${libshadowutils_SOURCE_DIR}/lib/getulong.c")
+file(GLOB LIBSHADOWUTILS_HEADERS
+    "${libshadowutils_SOURCE_DIR}/lib/getdef.h")
+set(LIBSHADOWUTILS_DOC
+    "README")
 
 # Shared library
 
@@ -28,26 +35,19 @@ add_test(test_getdef test_getdef)
 
 # Installation
 
-option(ENABLE_MULTIARCH "Enable support for multi-arch distros (lib64)" OFF)
-
-set(LIB_DEST "lib")
-if (ENABLE_MULTIARCH)
-    if (${CMAKE_C_SIZEOF_DATA_PTR} EQUAL 8)
-        set(LIB_DEST "lib64")
-    endif()
-endif()
-
 configure_file(${libshadowutils_SOURCE_DIR}/libshadowutils.pc.in
     ${CMAKE_CURRENT_BINARY_DIR}/libshadowutils.pc
     @ONLY)
 
 install(TARGETS shadowutils
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION ${LIB_DEST}
-    ARCHIVE DESTINATION ${LIB_DEST})
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(FILES ${LIBSHADOWUTILS_HEADERS}
     DESTINATION include/libshadowutils)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libshadowutils.pc
-    DESTINATION ${LIB_DEST}/pkgconfig)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+install(FILES ${LIBSHADOWUTILS_DOC}
+    DESTINATION ${CMAKE_INSTALL_DOCDIR})

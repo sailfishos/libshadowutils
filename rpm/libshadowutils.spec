@@ -1,9 +1,9 @@
 Name: libshadowutils
-Version: 0.0.3
-Release: 1
+Version: 0.0.4
+Release: 0
 Summary: Functions from Shadow Tool Suite as shared library
-License: BSD
-URL: https://git.sailfishos.org/mer-core/libshadowutils/
+License: BSD-3-Clause
+URL: https://github.com/sailfishos/libshadowutils/
 Source: %{name}-%{version}.tar.gz
 Source1: CMakeLists.txt
 Source2: README
@@ -28,6 +28,7 @@ the Shadow Tool Suite.
 
 %package doc
 Summary:   Documentation for %{name}
+BuildArch: noarch
 Requires:  %{name} = %{version}-%{release}
 
 %description doc
@@ -38,27 +39,18 @@ Requires:  %{name} = %{version}-%{release}
 cp %{SOURCE1} %{SOURCE3} %{SOURCE4} .
 
 %build
-%cmake -D LIBSHADOWUTILS_VERSION=%{version}-%{release} -D LIBSHADOWUTILS_VERSION_SONAME=`echo %{version} | sed 's/\..*//'` .
-make
+%cmake \
+       -DLIBSHADOWUTILS_VERSION=%{version}-%{release} \
+       -DLIBSHADOWUTILS_VERSION_SONAME=`echo %{version} | sed 's/\..*//'` .
+%cmake_build
 
 %install
-mkdir -p ${RPM_BUILD_ROOT}%{_libdir}/pkgconfig
-mv -f lib*.so* ${RPM_BUILD_ROOT}%{_libdir}/
-mv -f %{name}.pc ${RPM_BUILD_ROOT}%{_libdir}/pkgconfig
-mkdir -p ${RPM_BUILD_ROOT}%{_includedir}/%{name}
-install -D -m 644 lib/getdef.h ${RPM_BUILD_ROOT}%{_includedir}/%{name}
-mkdir -p ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}
-install -D -m 644 %{SOURCE2} ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}/
-install -m 644 README ${RPM_BUILD_ROOT}%{_docdir}/%{name}-%{version}/README.shadow
+%cmake_install
 
-%clean
-rm -rf %{buildroot}
 
-%post
-/sbin/ldconfig
+%post -p /sbin/ldconfig
 
-%postun
-/sbin/ldconfig
+%postun -p /sbin/ldconfig
 
 %files
 %defattr(-,root,root)
@@ -69,8 +61,8 @@ rm -rf %{buildroot}
 %defattr(-,root,root)
 %{_libdir}/lib*.so
 %{_libdir}/pkgconfig/*.pc
-%{_includedir}/*/*.h
+%{_includedir}/%{name}
 
 %files doc
 %defattr(-,root,root,-)
-%{_docdir}/%{name}-%{version}
+%{_docdir}/%{name}
