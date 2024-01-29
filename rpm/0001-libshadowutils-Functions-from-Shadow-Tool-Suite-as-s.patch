@@ -1,0 +1,327 @@
+From 067b843fb7b6b96fd0b5742187139fcc754861be Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bj=C3=B6rn=20Bidar?= <bjorn.bidar@jolla.com>
+Date: Mon, 29 Jan 2024 10:58:30 +0200
+Subject: [PATCH] libshadowutils: Functions from Shadow Tool Suite as shared
+ library
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Björn Bidar <bjorn.bidar@jolla.com>
+---
+ CMakeLists.txt        | 58 +++++++++++++++++++++++++++++++++++++++++++
+ README.libshadowutils | 20 +++++++++++++++
+ lib/defines.h         |  2 --
+ lib/getdef.c          | 16 +++++++-----
+ lib/getdef.h          | 16 +++++++++++-
+ lib/getlong.c         |  6 -----
+ lib/getulong.c        |  5 ----
+ lib/prototypes.h      |  4 +--
+ libshadowutils.pc.in  | 11 ++++++++
+ test_getdef.c         | 25 +++++++++++++++++++
+ 10 files changed, 140 insertions(+), 23 deletions(-)
+ create mode 100644 CMakeLists.txt
+ create mode 100644 README.libshadowutils
+ create mode 100644 libshadowutils.pc.in
+ create mode 100644 test_getdef.c
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 00000000..8a434ec8
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,58 @@
++cmake_minimum_required(VERSION 3.2)
++
++project(libshadowutils
++  LANGUAGES C
++  VERSION ${LIBSHADOWUTILS_VERS})
++
++include(GNUInstallDirs)
++
++add_definitions(-D"\"_(x)\"")
++
++file(GLOB LIBSHADOWUTILS_SOURCES
++  "${libshadowutils_SOURCE_DIR}/lib/getdef.c"
++  "${libshadowutils_SOURCE_DIR}/lib/getlong.c"
++  "${libshadowutils_SOURCE_DIR}/lib/getulong.c"
++  "${libshadowutils_SOURCE_DIR}/lib/shadowlog.c")
++
++file(GLOB LIBSHADOWUTILS_HEADERS
++  "${libshadowutils_SOURCE_DIR}/lib/getdef.h")
++set(LIBSHADOWUTILS_DOC
++  "README.libshadowutils")
++
++# Shared library
++
++add_library(shadowutils SHARED ${LIBSHADOWUTILS_SOURCES})
++set_target_properties(shadowutils PROPERTIES
++  VERSION ${LIBSHADOWUTILS_VERSION}
++  SOVERSION ${LIBSHADOWUTILS_VERSION_SONAME})
++target_include_directories(shadowutils
++  PRIVATE
++  ${libshadowutils_SOURCE_DIR}
++  ${libshadowutils_SOURCE_DIR}/lib)
++
++# Unit tests
++
++enable_testing()
++add_executable(test_getdef test_getdef.c)
++target_link_libraries(test_getdef shadowutils)
++add_test(test_getdef test_getdef)
++
++
++# Installation
++
++configure_file(${libshadowutils_SOURCE_DIR}/libshadowutils.pc.in
++  ${CMAKE_CURRENT_BINARY_DIR}/libshadowutils.pc
++  @ONLY)
++
++install(TARGETS shadowutils
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
++  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
++
++install(FILES ${LIBSHADOWUTILS_HEADERS}
++  DESTINATION include/libshadowutils)
++
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libshadowutils.pc
++  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
++install(FILES ${LIBSHADOWUTILS_DOC}
++  DESTINATION ${CMAKE_INSTALL_DOCDIR})
+diff --git a/README.libshadowutils b/README.libshadowutils
+new file mode 100644
+index 00000000..b84662fb
+--- /dev/null
++++ b/README.libshadowutils
+@@ -0,0 +1,20 @@
++libshadowutils: Functions from Shadow Tool Suite as shared library
++------------------------------------------------------------------
++
++This library contains some useful functions from the Shadow Tool Suite
++exposed as shared library to be used by applications not shipped with
++the Shadow Tool Suite.
++
++
++To build:
++
++  mkdir build
++  cd build
++  cmake ..
++  make
++
++
++Files imported from:
++  https://github.com/shadow-maint/shadow/releases/download/4.6/shadow-4.6.tar.xz
++  md5sum: b491fecbf1232632c32ff8f1437fd60e
++  sha1sum: 0b84eb1010fda5edca2a9d1733f9480200e02de6
+diff --git a/lib/defines.h b/lib/defines.h
+index d01f691e..d17b175b 100644
+--- a/lib/defines.h
++++ b/lib/defines.h
+@@ -4,8 +4,6 @@
+ #ifndef _DEFINES_H_
+ #define _DEFINES_H_
+ 
+-#include "config.h"
+-
+ #if HAVE_STDBOOL_H
+ # include <stdbool.h>
+ #else
+diff --git a/lib/getdef.c b/lib/getdef.c
+index dcd1fe72..79988cb8 100644
+--- a/lib/getdef.c
++++ b/lib/getdef.c
+@@ -7,12 +7,13 @@
+  * SPDX-License-Identifier: BSD-3-Clause
+  */
+ 
+-#include <config.h>
++#include <stdbool.h>
++#include <stdint.h>
++#include <limits.h>
++#include <string.h>
+ 
+-#ident "$Id$"
++#define SYSLOG(...)
+ 
+-#include "prototypes.h"
+-#include "defines.h"
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <ctype.h>
+@@ -67,6 +68,10 @@ struct itemdef {
+ 	{"MOTD_FIRSTONLY", NULL},		\
+ 
+ 
++#define USE_SYSLOG
++#define USE_SHA_CRYPT
++#define WITH_TCB
++
+ #define NUMDEFS	(sizeof(def_table)/sizeof(def_table[0]))
+ static struct itemdef def_table[] = {
+ 	{"CHFN_RESTRICT", NULL},
+@@ -591,12 +596,11 @@ static void def_load (void)
+ #endif
+ }
+ 
+-
+ #ifdef CKDEFS
+ int main (int argc, char **argv)
+ {
+ 	int i;
+-	char *cp;
++	const char *cp;
+ 	struct itemdef *d;
+ 
+ 	def_load ();
+diff --git a/lib/getdef.h b/lib/getdef.h
+index 2bd3fc5f..c0a8ef31 100644
+--- a/lib/getdef.h
++++ b/lib/getdef.h
+@@ -9,6 +9,12 @@
+ #ifndef _GETDEF_H
+ #define _GETDEF_H
+ 
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#include <stdbool.h>
++
+ /* getdef.c */
+ extern bool getdef_bool (const char *);
+ extern long getdef_long (const char *, long);
+@@ -17,9 +23,17 @@ extern unsigned long getdef_ulong (const char *, unsigned long);
+ extern unsigned int getdef_unum (const char *, unsigned int);
+ extern /*@observer@*/ /*@null@*/const char *getdef_str (const char *);
+ extern int putdef_str (const char *, const char *);
+-extern void setdef_config_file (const char* file);
++
++
++/* getlong.c */
++extern int getlong (const char *numstr, /*@out@*/long int *result);
++
+ 
+ /* default UMASK value if not specified in /etc/login.defs */
+ #define		GETDEF_DEFAULT_UMASK	022
+ 
++#ifdef __cplusplus
++}
++#endif
++
+ #endif				/* _GETDEF_H */
+diff --git a/lib/getlong.c b/lib/getlong.c
+index ec4aa54d..67d69f7d 100644
+--- a/lib/getlong.c
++++ b/lib/getlong.c
+@@ -4,13 +4,8 @@
+  * SPDX-License-Identifier: BSD-3-Clause
+  */
+ 
+-#include <config.h>
+-
+-#ident "$Id$"
+-
+ #include <stdlib.h>
+ #include <errno.h>
+-#include "prototypes.h"
+ 
+ /*
+  * getlong - extract a long integer provided by the numstr string in *result
+@@ -33,4 +28,3 @@ int getlong (const char *numstr, /*@out@*/long int *result)
+ 	*result = val;
+ 	return 1;
+ }
+-
+diff --git a/lib/getulong.c b/lib/getulong.c
+index 33250e3a..5f74e0d0 100644
+--- a/lib/getulong.c
++++ b/lib/getulong.c
+@@ -4,13 +4,8 @@
+  * SPDX-License-Identifier: BSD-3-Clause
+  */
+ 
+-#include <config.h>
+-
+-#ident "$Id: getlong.c 2763 2009-04-23 09:57:03Z nekral-guest $"
+-
+ #include <stdlib.h>
+ #include <errno.h>
+-#include "prototypes.h"
+ 
+ /*
+  * getulong - extract an unsigned long integer provided by the numstr string in *result
+diff --git a/lib/prototypes.h b/lib/prototypes.h
+index 1172b5d7..a595b1b0 100644
+--- a/lib/prototypes.h
++++ b/lib/prototypes.h
+@@ -19,8 +19,6 @@
+ #ifndef _PROTOTYPES_H
+ #define _PROTOTYPES_H
+ 
+-#include <config.h>
+-
+ #include <sys/stat.h>
+ #ifdef USE_UTMPX
+ #include <utmpx.h>
+@@ -241,7 +239,7 @@ extern void motd (void);
+ extern /*@null@*//*@only@*/struct passwd *get_my_pwent (void);
+ 
+ /* nss.c */
+-#include <libsubid/subid.h>
++// #include <libsubid/subid.h>
+ extern void nss_init(const char *nsswitch_path);
+ extern bool nss_is_initialized(void);
+ 
+diff --git a/libshadowutils.pc.in b/libshadowutils.pc.in
+new file mode 100644
+index 00000000..912e871a
+--- /dev/null
++++ b/libshadowutils.pc.in
+@@ -0,0 +1,11 @@
++prefix=@CMAKE_INSTALL_PREFIX@
++exec_prefix=${prefix}
++libdir=${prefix}/@LIB_DEST@
++includedir=${prefix}/include/libshadowutils
++
++Name: libshadowutils
++Description: Shared Library with functions from pkg-shadow
++URL: http://pkg-shadow.alioth.debian.org/
++Version: @LIBSHADOWUTILS_VERSION@
++Libs: -L${libdir} -lshadowutils
++Cflags: -I${includedir}
+diff --git a/test_getdef.c b/test_getdef.c
+new file mode 100644
+index 00000000..f698019e
+--- /dev/null
++++ b/test_getdef.c
+@@ -0,0 +1,25 @@
++#include "lib/getdef.h"
++
++#include <stdio.h>
++#include <stdlib.h>
++
++int
++get_or_fail(const char *key)
++{
++    int result = getdef_num(key, -1);
++    if (result == -1) {
++        fprintf(stderr, "ERROR: Cannot get value for '%s'\n", key);
++        exit(1);
++    }
++    return result;
++}
++
++int
++main(int argc, char *argv[])
++{
++    int uid_min = get_or_fail("UID_MIN");
++    int uid_max = get_or_fail("UID_MAX");
++
++    fprintf(stdout, "User ID Range: %d..%d\n", uid_min, uid_max);
++    return 0;
++}
+-- 
+2.43.0
+

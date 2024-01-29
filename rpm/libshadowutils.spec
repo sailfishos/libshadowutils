@@ -5,11 +5,7 @@ Summary: Functions from Shadow Tool Suite as shared library
 License: BSD-3-Clause
 URL: https://github.com/sailfishos/libshadowutils/
 Source: %{name}-%{version}.tar.gz
-Source1: CMakeLists.txt
-Source2: README
-Source3: libshadowutils.pc.in
-Source4: test_getdef.c
-Patch1: library.diff
+Patch1: 0001-libshadowutils-Functions-from-Shadow-Tool-Suite-as-s.patch
 BuildRequires: cmake
 
 %description
@@ -36,7 +32,6 @@ Requires:  %{name} = %{version}-%{release}
 
 %prep
 %autosetup -p1 -n %{name}-%{version}/upstream
-cp %{SOURCE1} %{SOURCE3} %{SOURCE4} .
 
 %build
 %cmake \
