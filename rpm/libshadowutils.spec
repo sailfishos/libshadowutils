@@ -1,5 +1,5 @@
 Name: libshadowutils
-Version: 0.0.4
+Version: 0.0.6
 Release: 0
 Summary: Functions from Shadow Tool Suite as shared library
 License: BSD-3-Clause
