@@ -1,4 +1,4 @@
-From 067b843fb7b6b96fd0b5742187139fcc754861be Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Bj=C3=B6rn=20Bidar?= <bjorn.bidar@jolla.com>
 Date: Mon, 29 Jan 2024 10:58:30 +0200
 Subject: [PATCH] libshadowutils: Functions from Shadow Tool Suite as shared
@@ -9,29 +9,46 @@ Content-Transfer-Encoding: 8bit
 
 Signed-off-by: Björn Bidar <bjorn.bidar@jolla.com>
 ---
- CMakeLists.txt        | 58 +++++++++++++++++++++++++++++++++++++++++++
- README.libshadowutils | 20 +++++++++++++++
- lib/defines.h         |  2 --
- lib/getdef.c          | 16 +++++++-----
- lib/getdef.h          | 16 +++++++++++-
- lib/getlong.c         |  6 -----
- lib/getulong.c        |  5 ----
- lib/prototypes.h      |  4 +--
- libshadowutils.pc.in  | 11 ++++++++
- test_getdef.c         | 25 +++++++++++++++++++
- 10 files changed, 140 insertions(+), 23 deletions(-)
+ CMakeLists.txt          | 79 +++++++++++++++++++++++++++++++++++++++++
+ README.libshadowutils   | 20 +++++++++++
+ lib/alloc.h             |  1 -
+ lib/atoi/a2i.c          |  1 -
+ lib/atoi/a2i.h          |  1 -
+ lib/atoi/str2i.c        |  1 -
+ lib/atoi/str2i.h        |  1 -
+ lib/atoi/strtoi.c       |  2 --
+ lib/atoi/strtoi.h       |  1 -
+ lib/atoi/strtou_noneg.c |  2 --
+ lib/atoi/strtou_noneg.h |  1 -
+ lib/attr.h              |  1 -
+ lib/defines.h           |  4 +--
+ lib/getdef.c            | 14 +++++---
+ lib/getdef.h            | 16 ++++++++-
+ lib/getlong.c           | 30 ++++++++++++++++
+ lib/getulong.c          | 34 ++++++++++++++++++
+ lib/must_be.h           |  1 -
+ lib/prototypes.h        |  2 --
+ lib/sizeof.h            |  1 -
+ lib/string/sprintf.h    |  2 --
+ libshadowutils.pc.in    | 11 ++++++
+ test_getdef.c           | 25 +++++++++++++
+ 23 files changed, 225 insertions(+), 26 deletions(-)
  create mode 100644 CMakeLists.txt
  create mode 100644 README.libshadowutils
+ create mode 100644 lib/getlong.c
+ create mode 100644 lib/getulong.c
  create mode 100644 libshadowutils.pc.in
  create mode 100644 test_getdef.c
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 new file mode 100644
-index 00000000..8a434ec8
+index 00000000..256ed88c
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,58 @@
-+cmake_minimum_required(VERSION 3.2)
+@@ -0,0 +1,79 @@
++cmake_minimum_required(VERSION 3.5)
++
++set(LIBSHADOWUTILS_VERS 4.16.0)
 +
 +project(libshadowutils
 +  LANGUAGES C
@@ -39,13 +56,21 @@ index 00000000..8a434ec8
 +
 +include(GNUInstallDirs)
 +
-+add_definitions(-D"\"_(x)\"")
++add_definitions(-D "\"_(Text)= Text\"")
++
++# We want GNU extensions of libc
++add_definitions(-D_GNU_SOURCE)
 +
 +file(GLOB LIBSHADOWUTILS_SOURCES
 +  "${libshadowutils_SOURCE_DIR}/lib/getdef.c"
 +  "${libshadowutils_SOURCE_DIR}/lib/getlong.c"
 +  "${libshadowutils_SOURCE_DIR}/lib/getulong.c"
-+  "${libshadowutils_SOURCE_DIR}/lib/shadowlog.c")
++  "${libshadowutils_SOURCE_DIR}/lib/shadowlog.c"
++  "${libshadowutils_SOURCE_DIR}/lib/atoi/a2i.c"
++  "${libshadowutils_SOURCE_DIR}/lib/atoi/strtoi.c"
++  "${libshadowutils_SOURCE_DIR}/lib/atoi/strtou_noneg.c"
++  "${libshadowutils_SOURCE_DIR}/lib/atoi/str2i.c"
++)
 +
 +file(GLOB LIBSHADOWUTILS_HEADERS
 +  "${libshadowutils_SOURCE_DIR}/lib/getdef.h")
@@ -61,7 +86,8 @@ index 00000000..8a434ec8
 +target_include_directories(shadowutils
 +  PRIVATE
 +  ${libshadowutils_SOURCE_DIR}
-+  ${libshadowutils_SOURCE_DIR}/lib)
++  ${libshadowutils_SOURCE_DIR}/lib
++  ${CMAKE_CURRENT_BINARY_DIR})
 +
 +# Unit tests
 +
@@ -75,6 +101,16 @@ index 00000000..8a434ec8
 +
 +configure_file(${libshadowutils_SOURCE_DIR}/libshadowutils.pc.in
 +  ${CMAKE_CURRENT_BINARY_DIR}/libshadowutils.pc
++  @ONLY)
++
++# Taken from Autoconf
++set(LIBSUBID_ABI_MAJOR 5)
++set(LIBSUBID_ABI_MINOR 0)
++set(LIBSUBID_ABI_MICRO 0)
++set(LIBSUBID_ABI ${LIBSUBID_ABI_MAJOR}.${LIBSUBID_ABI_MINOR}.${LIBSUBID_ABI_MICRO})
++
++configure_file(${libshadowutils_SOURCE_DIR}/libsubid/subid.h.in
++  ${CMAKE_CURRENT_BINARY_DIR}/libsubid/subid.h
 +  @ONLY)
 +
 +install(TARGETS shadowutils
@@ -115,8 +151,130 @@ index 00000000..b84662fb
 +  https://github.com/shadow-maint/shadow/releases/download/4.6/shadow-4.6.tar.xz
 +  md5sum: b491fecbf1232632c32ff8f1437fd60e
 +  sha1sum: 0b84eb1010fda5edca2a9d1733f9480200e02de6
+diff --git a/lib/alloc.h b/lib/alloc.h
+index 39405a56..036b07ee 100644
+--- a/lib/alloc.h
++++ b/lib/alloc.h
+@@ -6,7 +6,6 @@
+ #define SHADOW_INCLUDE_LIB_MALLOC_H_
+ 
+ 
+-#include <config.h>
+ 
+ #include <assert.h>
+ #include <errno.h>
+diff --git a/lib/atoi/a2i.c b/lib/atoi/a2i.c
+index a2cf8723..860952ee 100644
+--- a/lib/atoi/a2i.c
++++ b/lib/atoi/a2i.c
+@@ -2,7 +2,6 @@
+ // SPDX-License-Identifier: BSD-3-Clause
+ 
+ 
+-#include <config.h>
+ 
+ #include "atoi/a2i.h"
+ 
+diff --git a/lib/atoi/a2i.h b/lib/atoi/a2i.h
+index 64f775a9..7caa65e3 100644
+--- a/lib/atoi/a2i.h
++++ b/lib/atoi/a2i.h
+@@ -6,7 +6,6 @@
+ #define SHADOW_INCLUDE_LIB_ATOI_A2I_H_
+ 
+ 
+-#include <config.h>
+ 
+ #include <errno.h>
+ 
+diff --git a/lib/atoi/str2i.c b/lib/atoi/str2i.c
+index 25ce3609..0269b534 100644
+--- a/lib/atoi/str2i.c
++++ b/lib/atoi/str2i.c
+@@ -3,7 +3,6 @@
+ // SPDX-License-Identifier: BSD-3-Clause
+ 
+ 
+-#include <config.h>
+ 
+ #include "atoi/str2i.h"
+ 
+diff --git a/lib/atoi/str2i.h b/lib/atoi/str2i.h
+index b3ded031..7681c465 100644
+--- a/lib/atoi/str2i.h
++++ b/lib/atoi/str2i.h
+@@ -7,7 +7,6 @@
+ #define SHADOW_INCLUDE_LIB_ATOI_STR2I_H_
+ 
+ 
+-#include <config.h>
+ 
+ #include <limits.h>
+ #include <stddef.h>
+diff --git a/lib/atoi/strtoi.c b/lib/atoi/strtoi.c
+index 197707b1..774dbf7b 100644
+--- a/lib/atoi/strtoi.c
++++ b/lib/atoi/strtoi.c
+@@ -2,8 +2,6 @@
+ // SPDX-License-Identifier: BSD-3-Clause
+ 
+ 
+-#include <config.h>
+-
+ #include "atoi/strtoi.h"
+ 
+ #include <stdint.h>
+diff --git a/lib/atoi/strtoi.h b/lib/atoi/strtoi.h
+index 1f061fc0..9c0c252f 100644
+--- a/lib/atoi/strtoi.h
++++ b/lib/atoi/strtoi.h
+@@ -6,7 +6,6 @@
+ #define SHADOW_INCLUDE_LIB_ATOI_STRTOI_H_
+ 
+ 
+-#include <config.h>
+ 
+ #include <errno.h>
+ #include <inttypes.h>
+diff --git a/lib/atoi/strtou_noneg.c b/lib/atoi/strtou_noneg.c
+index 71cacbd1..b4d51fc4 100644
+--- a/lib/atoi/strtou_noneg.c
++++ b/lib/atoi/strtou_noneg.c
+@@ -2,8 +2,6 @@
+ // SPDX-License-Identifier: BSD-3-Clause
+ 
+ 
+-#include <config.h>
+-
+ #include "atoi/strtou_noneg.h"
+ 
+ #include <stdint.h>
+diff --git a/lib/atoi/strtou_noneg.h b/lib/atoi/strtou_noneg.h
+index 6d77adf5..54814016 100644
+--- a/lib/atoi/strtou_noneg.h
++++ b/lib/atoi/strtou_noneg.h
+@@ -6,7 +6,6 @@
+ #define SHADOW_INCLUDE_LIB_ATOI_STRTOU_NONEG_H_
+ 
+ 
+-#include <config.h>
+ 
+ #include <errno.h>
+ #include <stddef.h>
+diff --git a/lib/attr.h b/lib/attr.h
+index 3835848d..9dfcc93f 100644
+--- a/lib/attr.h
++++ b/lib/attr.h
+@@ -2,7 +2,6 @@
+ #define SHADOW_INCLUDE_LIB_ATTR_H_
+ 
+ 
+-#include "config.h"
+ 
+ 
+ #if defined(__GNUC__)
 diff --git a/lib/defines.h b/lib/defines.h
-index d01f691e..d17b175b 100644
+index 8c55dddb..77b42f22 100644
 --- a/lib/defines.h
 +++ b/lib/defines.h
 @@ -4,8 +4,6 @@
@@ -125,32 +283,38 @@ index d01f691e..d17b175b 100644
  
 -#include "config.h"
 -
- #if HAVE_STDBOOL_H
- # include <stdbool.h>
- #else
+ #include <stdbool.h>
+ #include <locale.h>
+ 
+@@ -20,7 +18,9 @@
+ # define bindtextdomain(Domain, Directory)	(NULL)
+ # undef textdomain
+ # define textdomain(Domain)	(NULL)
++# ifndef _
+ # define _(Text) Text
++# endif
+ # define ngettext(Msgid1, Msgid2, N) \
+     ((N) == 1 ? (const char *) (Msgid1) : (const char *) (Msgid2))
+ #endif
 diff --git a/lib/getdef.c b/lib/getdef.c
-index dcd1fe72..79988cb8 100644
+index 30f54bab..f640d6bb 100644
 --- a/lib/getdef.c
 +++ b/lib/getdef.c
-@@ -7,12 +7,13 @@
+@@ -7,9 +7,10 @@
   * SPDX-License-Identifier: BSD-3-Clause
   */
  
 -#include <config.h>
+-
+-#ident "$Id$"
 +#include <stdbool.h>
 +#include <stdint.h>
 +#include <limits.h>
 +#include <string.h>
  
--#ident "$Id$"
-+#define SYSLOG(...)
- 
--#include "prototypes.h"
--#include "defines.h"
- #include <stdio.h>
- #include <stdlib.h>
- #include <ctype.h>
-@@ -67,6 +68,10 @@ struct itemdef {
+ #include "prototypes.h"
+ #include "defines.h"
+@@ -73,6 +74,10 @@ struct itemdef {
  	{"MOTD_FIRSTONLY", NULL},		\
  
  
@@ -161,9 +325,9 @@ index dcd1fe72..79988cb8 100644
  #define NUMDEFS	(sizeof(def_table)/sizeof(def_table[0]))
  static struct itemdef def_table[] = {
  	{"CHFN_RESTRICT", NULL},
-@@ -591,12 +596,11 @@ static void def_load (void)
- #endif
+@@ -602,12 +607,11 @@ static void def_load (void)
  }
+ #endif /* USE_ECONF */
  
 -
  #ifdef CKDEFS
@@ -176,7 +340,7 @@ index dcd1fe72..79988cb8 100644
  
  	def_load ();
 diff --git a/lib/getdef.h b/lib/getdef.h
-index 2bd3fc5f..c0a8ef31 100644
+index f55e28b7..a3be9990 100644
 --- a/lib/getdef.h
 +++ b/lib/getdef.h
 @@ -9,6 +9,12 @@
@@ -195,7 +359,7 @@ index 2bd3fc5f..c0a8ef31 100644
 @@ -17,9 +23,17 @@ extern unsigned long getdef_ulong (const char *, unsigned long);
  extern unsigned int getdef_unum (const char *, unsigned int);
  extern /*@observer@*/ /*@null@*/const char *getdef_str (const char *);
- extern int putdef_str (const char *, const char *);
+ extern int putdef_str (const char *, const char *, const char *);
 -extern void setdef_config_file (const char* file);
 +
 +
@@ -212,48 +376,95 @@ index 2bd3fc5f..c0a8ef31 100644
 +
  #endif				/* _GETDEF_H */
 diff --git a/lib/getlong.c b/lib/getlong.c
-index ec4aa54d..67d69f7d 100644
---- a/lib/getlong.c
+new file mode 100644
+index 00000000..67d69f7d
+--- /dev/null
 +++ b/lib/getlong.c
-@@ -4,13 +4,8 @@
-  * SPDX-License-Identifier: BSD-3-Clause
-  */
- 
--#include <config.h>
--
--#ident "$Id$"
--
- #include <stdlib.h>
- #include <errno.h>
--#include "prototypes.h"
- 
- /*
-  * getlong - extract a long integer provided by the numstr string in *result
-@@ -33,4 +28,3 @@ int getlong (const char *numstr, /*@out@*/long int *result)
- 	*result = val;
- 	return 1;
- }
--
+@@ -0,0 +1,30 @@
++/*
++ * SPDX-FileCopyrightText: 2007 - 2009, Nicolas François
++ *
++ * SPDX-License-Identifier: BSD-3-Clause
++ */
++
++#include <stdlib.h>
++#include <errno.h>
++
++/*
++ * getlong - extract a long integer provided by the numstr string in *result
++ *
++ * It supports decimal, hexadecimal or octal representations.
++ *
++ * Returns 0 on failure, 1 on success.
++ */
++int getlong (const char *numstr, /*@out@*/long int *result)
++{
++	long val;
++	char *endptr;
++
++	errno = 0;
++	val = strtol (numstr, &endptr, 0);
++	if (('\0' == *numstr) || ('\0' != *endptr) || (ERANGE == errno)) {
++		return 0;
++	}
++
++	*result = val;
++	return 1;
++}
 diff --git a/lib/getulong.c b/lib/getulong.c
-index 33250e3a..5f74e0d0 100644
---- a/lib/getulong.c
+new file mode 100644
+index 00000000..5f74e0d0
+--- /dev/null
 +++ b/lib/getulong.c
-@@ -4,13 +4,8 @@
-  * SPDX-License-Identifier: BSD-3-Clause
-  */
+@@ -0,0 +1,34 @@
++/*
++ * SPDX-FileCopyrightText: 2007 - 2009, Nicolas François
++ *
++ * SPDX-License-Identifier: BSD-3-Clause
++ */
++
++#include <stdlib.h>
++#include <errno.h>
++
++/*
++ * getulong - extract an unsigned long integer provided by the numstr string in *result
++ *
++ * It supports decimal, hexadecimal or octal representations.
++ *
++ * Returns 0 on failure, 1 on success.
++ */
++int getulong (const char *numstr, /*@out@*/unsigned long int *result)
++{
++	unsigned long int val;
++	char *endptr;
++
++	errno = 0;
++	val = strtoul (numstr, &endptr, 0);
++	if (    ('\0' == *numstr)
++	     || ('\0' != *endptr)
++	     || (ERANGE == errno)
++	   ) {
++		return 0;
++	}
++
++	*result = val;
++	return 1;
++}
++
+diff --git a/lib/must_be.h b/lib/must_be.h
+index a7365cba..b54214e3 100644
+--- a/lib/must_be.h
++++ b/lib/must_be.h
+@@ -8,7 +8,6 @@
+ #define SHADOW_INCLUDE_LIBMISC_MUST_BE_H_
+ 
  
 -#include <config.h>
--
--#ident "$Id: getlong.c 2763 2009-04-23 09:57:03Z nekral-guest $"
--
- #include <stdlib.h>
- #include <errno.h>
--#include "prototypes.h"
  
- /*
-  * getulong - extract an unsigned long integer provided by the numstr string in *result
+ #include <assert.h>
+ 
 diff --git a/lib/prototypes.h b/lib/prototypes.h
-index 1172b5d7..a595b1b0 100644
+index 91ff368b..a15a45c5 100644
 --- a/lib/prototypes.h
 +++ b/lib/prototypes.h
 @@ -19,8 +19,6 @@
@@ -262,18 +473,34 @@ index 1172b5d7..a595b1b0 100644
  
 -#include <config.h>
 -
+ #include <sys/socket.h>
  #include <sys/stat.h>
- #ifdef USE_UTMPX
- #include <utmpx.h>
-@@ -241,7 +239,7 @@ extern void motd (void);
- extern /*@null@*//*@only@*/struct passwd *get_my_pwent (void);
+ #include <sys/types.h>
+diff --git a/lib/sizeof.h b/lib/sizeof.h
+index 6847068e..eb1f1e63 100644
+--- a/lib/sizeof.h
++++ b/lib/sizeof.h
+@@ -8,7 +8,6 @@
+ #define SHADOW_INCLUDE_LIBMISC_SIZEOF_H_
  
- /* nss.c */
--#include <libsubid/subid.h>
-+// #include <libsubid/subid.h>
- extern void nss_init(const char *nsswitch_path);
- extern bool nss_is_initialized(void);
  
+-#include <config.h>
+ 
+ #include <limits.h>
+ 
+diff --git a/lib/string/sprintf.h b/lib/string/sprintf.h
+index 74853694..56d70ad6 100644
+--- a/lib/string/sprintf.h
++++ b/lib/string/sprintf.h
+@@ -8,8 +8,6 @@
+ #define SHADOW_INCLUDE_LIB_SPRINTF_H_
+ 
+ 
+-#include <config.h>
+-
+ #include <stdarg.h>
+ #include <stddef.h>
+ #include <stdio.h>
 diff --git a/libshadowutils.pc.in b/libshadowutils.pc.in
 new file mode 100644
 index 00000000..912e871a
@@ -322,6 +549,3 @@ index 00000000..f698019e
 +    fprintf(stdout, "User ID Range: %d..%d\n", uid_min, uid_max);
 +    return 0;
 +}
--- 
-2.43.0
-

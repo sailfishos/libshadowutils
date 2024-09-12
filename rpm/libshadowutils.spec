@@ -1,5 +1,5 @@
 Name: libshadowutils
-Version: 0.0.4
+Version: 0.0.6
 Release: 0
 Summary: Functions from Shadow Tool Suite as shared library
 License: BSD-3-Clause
@@ -48,16 +48,13 @@ Requires:  %{name} = %{version}-%{release}
 %postun -p /sbin/ldconfig
 
 %files
-%defattr(-,root,root)
 %license COPYING
 %{_libdir}/lib*.so.*
 
 %files devel
-%defattr(-,root,root)
 %{_libdir}/lib*.so
 %{_libdir}/pkgconfig/*.pc
 %{_includedir}/%{name}
 
 %files doc
-%defattr(-,root,root,-)
 %{_docdir}/%{name}
