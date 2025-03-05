@@ -35,7 +35,7 @@ Requires:  %{name} = %{version}-%{release}
 
 %build
 %cmake \
-       -DLIBSHADOWUTILS_VERSION=%{version}-%{release} \
+       -DLIBSHADOWUTILS_VERSION=%{version} \
        -DLIBSHADOWUTILS_VERSION_SONAME=`echo %{version} | sed 's/\..*//'` .
 %cmake_build
 
